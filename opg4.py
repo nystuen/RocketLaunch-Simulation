@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 # Index in the following arrays indicates which stage
 dry_weights = [1.31e5, 3.6e4, 1e4]
 total_mass = [2.970e6, 6.800e5, 1.838e5, 7.43e4]
-fuel_mass = [2.169e6, 4.44e6, 1.09e6]
+fuel_mass = [2.169e6, 4.44e5, 1.09e5]
 stage_duration = [168, 367, 494]
 diameters = [10, 10, 6.604]
 thrust = [3.4e7, 4.9e6, 1.0331e6]
@@ -16,12 +16,13 @@ instrument_module_weight = 1996
 
 estimated_exhaust_each_stage = []
 
+
+
 def stageIsInvalid(stage):
     if stage != 1 and stage != 2 and stage != 3:
         return True
     else:
         return False
-
 
 def calculate_fuel_mass_per_second(stage):
     if stageIsInvalid(stage): return ValueError('Stage does not exists')
@@ -47,6 +48,19 @@ def estimate_exhaust_velocity(thrust, stage):
     return v
 
 
+def get_exhaust_velocity(time):
+    if time < 0:
+        return ValueError('Negative time values are not possible')
+    elif time <= stage_duration[0]:
+        return estimate_exhaust_velocity(get_thrust(time), 1)
+    elif time <= sum(stage_duration[:2]):
+        return estimate_exhaust_velocity(get_thrust(time), 2)
+    elif time <= sum(stage_duration[:3]):
+        return estimate_exhaust_velocity(get_thrust(time), 3)
+    else:
+        return 0
+
+
 def estimate_mass(time):
     if time < 0:
         return ValueError('Negative time values are not possible')
@@ -58,9 +72,6 @@ def estimate_mass(time):
         return total_mass[2] - calculate_fuel_mass_per_second_given_time(time) * (time - sum(stage_duration[:2]))
     else:
         return total_mass[3]
-
-
-
 
 def get_thrust(time):
     if time < 0:
@@ -97,6 +108,8 @@ for tid in range(1400):
     #if tid % 1202 == 0: print(estimate_mass(tid))
 
 #print(estimated_masses)
+'''
+
 plt.plot(estimated_masses)
 plt.ylabel('Mass (kg)')
 plt.xlabel('Time (s)')
@@ -107,5 +120,4 @@ plt.ylabel('Thrust (N)')
 plt.xlabel('Time (s)')
 plt.show()
 
-input = "123213122"
-print(input.isdigit())
+'''
