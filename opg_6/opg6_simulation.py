@@ -11,7 +11,7 @@ import matplotlib.animation as animation
 # make an Orbit instance
 # init_state: [t0, x0J, vx0J,  y0MJ   vy0J, x0R, vx0R,   y0R,    vy0R],
 orbit = Orbit([0, 0, 0, 0, 0.1, 1, 0.1, 6371000, 0.1], 6)
-dt = 1. / 120  # 30 frames per second
+dt = 1. / 30  # 30 frames per second
 
 # The figure is set
 fig = plot.figure()
@@ -47,7 +47,7 @@ def init():
 def animate(i):
     """perform animation step"""
     global orbit, dt
-    secondsPerFrame = 90
+    secondsPerFrame = 10
     t0 = orbit.state[0]
     while orbit.state[0] < t0 + secondsPerFrame:
         orbit.step()
@@ -81,7 +81,7 @@ delay = 2000 * dt - (t1 - t0)
 
 anim = animation.FuncAnimation(fig,  # figure to plot in
                                animate,  # function that is called on each frame
-                               frames=1000,  # total number of frames
+                               frames=900,  # total number of frames
                                interval=delay,  # time to wait between each frame.
                                repeat=False,
                                blit=True,
