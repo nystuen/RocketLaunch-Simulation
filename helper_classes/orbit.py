@@ -1,14 +1,29 @@
-from rungekutta import *
-import time as myTime
-import matplotlib.pyplot as plot
-import matplotlib.animation as animation
-from opg4 import *
-from opg5 import *
+from opg_5.opg5 import *
+from helper_classes.rungekutta import *
+from opg_4.opg4 import *
 
-grav =0
-skyve=0
-luft =0
-fart = 0
+gravity = 0
+thrust = 0
+airResistance = 0
+speed = 0
+
+"""
+Orbit Class
+
+init_state is [t0,x0,vx0,y0,vx0],
+where (x0,y0) is the initial position
+, (vx0,vy0) is the initial velocity
+and t0 is the initial time
+"""
+"""
+Orbit Class
+
+init_state is [t0,x0,vx0,y0,vx0],
+where (x0,y0) is the initial position
+, (vx0,vy0) is the initial velocity
+and t0 is the initial time
+"""
+
 
 class Orbit:
     GravConstant = 6.67408 * 10 ** (-11)
@@ -17,16 +32,6 @@ class Orbit:
     h = 0.000001
     tol = 05e-10
     prevPositions = [[0], [384400000]]
-
-    """
-
-    Orbit Class
-
-    init_state is [t0,x0,vx0,y0,vx0],
-    where (x0,y0) is the initial position
-    , (vx0,vy0) is the initial velocity
-    and t0 is the initial time
-    """
 
     def __init__(self,
                  init_state,
@@ -49,8 +54,6 @@ class Orbit:
             self.rkf54 = RungeKuttaFehlberg54(self.ydotTask6, len(self.state), self.h, self.tol)
             self.prevPositions = [[0], [6371010]]
         self.check = 0
-
-
 
     def getPos(self):
         return self.prevPositions
@@ -78,7 +81,7 @@ class Orbit:
         vyR = self.state[8]
         m_earth = self.mPlanet1
         G = self.GravConst
-        mR = opg4.estimate_mass(self.state[0])
+        mR = opg_4.estimate_mass(self.state[0])
         dist = np.sqrt((pxR - pxJ) ** 2 + (pyR - pyJ) ** 2)
         uTot = -G * m_earth * mR / dist
         k_earth = m_earth * (vxJ ** 2 + vyJ ** 2) / 2
@@ -95,13 +98,13 @@ class Orbit:
         pyM = self.state[7]
         vyM = self.state[8]
         m_earth = self.mPlanet1
-        mManen = self.mPlanet2
+        m_moon = self.mPlanet2
         G = self.GravConst
         dist = np.sqrt((pxM - pxJ) ** 2 + (pyM - pyJ) ** 2)
-        uTot = -G * m_earth * mManen / dist
+        uTot = -G * m_earth * m_moon / dist
         k_earth = m_earth * (vxJ ** 2 + vyJ ** 2) / 2
-        kManen = mManen * (vxM ** 2 + vyM ** 2) / 2
-        return (k_earth + uTot + kManen) / (10 ** 24)
+        k_moon = m_moon * (vxM ** 2 + vyM ** 2) / 2
+        return (k_earth + uTot + k_moon) / (10 ** 24)
 
     def time_elapsed(self):
         return self.state[0]
@@ -122,7 +125,6 @@ class Orbit:
         vyR = x[8]
 
         z = np.zeros(9)
-        # dist = np.sqrt((pxR - pxJ) ** 2 + (pyR - pyJ) ** 2)
         z[0] = 1
         z[1] = 0
         z[2] = 0
@@ -131,13 +133,12 @@ class Orbit:
         z[5] = 0
         z[6] = 0
         z[7] = vyR
-        z[8] = (-rocket_gravity((pyR - pyJ), estimate_mass(x[0])) - air_resistance((pyR - pyJ), vyR, x[0]) + get_thrust(
-            x[0])) / estimate_mass(x[0])
+        z[8] = acceleration(x[0], pyR - pyJ, vyR)
         return z
 
     def ydotTask3(self, x):
         m_earth = self.mPlanet1
-        mManen = self.mPlanet2
+        m_moon = self.mPlanet2
         pxJ = x[1]
         vxJ = x[2]
         pyJ = x[3]
@@ -151,9 +152,9 @@ class Orbit:
         dist = np.sqrt((pxM - pxJ) ** 2 + (pyM - pyJ) ** 2)
         z[0] = 1
         z[1] = vxJ
-        z[2] = (self.GravConst * mManen * (pxM - pxJ)) / (dist ** 3)
+        z[2] = (self.GravConst * m_moon * (pxM - pxJ)) / (dist ** 3)
         z[3] = vyJ
-        z[4] = (self.GravConst * mManen * (pyM - pyJ)) / (dist ** 3)
+        z[4] = (self.GravConst * m_moon * (pyM - pyJ)) / (dist ** 3)
         z[5] = vxM
         z[6] = (self.GravConst * m_earth * (pxJ - pxM)) / (dist ** 3)
         z[7] = vyM
@@ -190,27 +191,27 @@ class Orbit:
         vyR = x[8]
 
         dist = np.sqrt((pxR - pxJ) ** 2 + (pyR - pyJ) ** 2)
-        #dist = 50000 - pxR - pxJ
+        # dist = 50000 - pxR - pxJ
 
-        angle_V = np.arctan(vyR/ vxR)
+        angle_V = np.arctan(vyR / vxR)
         angle_R = np.arcsin(pyR / dist)
-        if(pxR>0 and pyR > 0):
+        if (pxR > 0 and pyR > 0):
             angle_R = np.arcsin(pyR / dist)
-        elif(pxR<0 and pyR<0):
-            angle_R = - np.pi/2 - (np.pi/2 + np.arcsin(pyR/dist))
-        elif(pxR<0 and pyR >0):
-            angle_R = np.pi - np.arcsin(pyR/dist)
+        elif (pxR < 0 and pyR < 0):
+            angle_R = - np.pi / 2 - (np.pi / 2 + np.arcsin(pyR / dist))
+        elif (pxR < 0 and pyR > 0):
+            angle_R = np.pi - np.arcsin(pyR / dist)
 
         periode = get_stage(x[0])
         if x[0] < 60:
-            angle_F= np.pi/2
+            angle_F = np.pi / 2
         else:
-            angle_F = angle_V-(0.034)*periode**2
+            angle_F = angle_V - (0.034) * periode ** 2
 
-        grav = rocket_gravity(dist,  estimate_mass(x[0]))
-        fart = np.sqrt(vxR**2 + vyR**2)
-        skyve = get_thrust(x[0])
-        luft = air_resistance(dist, fart, x[0])
+        gravity = rocket_gravity(dist, estimate_mass(x[0]))
+        speed = np.sqrt(vxR ** 2 + vyR ** 2)
+        thrust = get_thrust(x[0])
+        airResistance = air_resistance(dist, speed, x[0])
 
         z = np.zeros(9)
         z[0] = 1
@@ -219,28 +220,12 @@ class Orbit:
         z[3] = 0
         z[4] = 0
         z[5] = vxR
-        ax = (grav*np.cos(angle_R+np.pi) + luft*np.cos(angle_V+np.pi) + skyve*np.cos(angle_F))/ estimate_mass(x[0])
+        ax = (gravity * np.cos(angle_R + np.pi) + airResistance * np.cos(angle_V + np.pi) + thrust * np.cos(
+            angle_F)) / estimate_mass(x[0])
         z[6] = ax
         z[7] = vyR
-        ay = (grav*np.sin(angle_R+np.pi) +luft*np.sin(angle_V+np.pi) + skyve*np.sin(angle_F)) / estimate_mass(x[0])
+        ay = (gravity * np.sin(angle_R + np.pi) + airResistance * np.sin(angle_V + np.pi) + thrust * np.sin(
+            angle_F)) / estimate_mass(x[0])
         z[8] = ay
 
-        if(900 < x[0] < 1050):
-        #if(vyR < 5):
-                print()
-                print("fart x:", vxR)
-                print("fart y:", vyR)
-                print("tid?:", x[0])
-                print("ax:", ax)
-                print("ay:", ay)
-                print("angle_R:", angle_R)
-                print("angle_F:", angle_F)
-                print("angle_V:", angle_V)
-                print("airresistance:", luft)
-                print("thrust::", skyve)
-                print("gravity:", grav)
-
-
         return z
-
-
