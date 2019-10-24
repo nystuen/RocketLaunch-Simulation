@@ -1,15 +1,21 @@
 from rungekutta import *
-
+import time as myTime
 import matplotlib.pyplot as plot
 import matplotlib.animation as animation
+from opg4 import *
+from opg5 import *
 
+grav =0
+skyve=0
+luft =0
+fart = 0
 
 class Orbit:
     GravConstant = 6.67408 * 10 ** (-11)
     M_e = 5.972 * 10 ** 24
     M_m = 7.34767309 * 10 ** 22
-    h = 0.1
-    tol = 05e-14
+    h = 0.000001
+    tol = 05e-10
     prevPositions = [[0], [384400000]]
 
     """
@@ -24,6 +30,7 @@ class Orbit:
 
     def __init__(self,
                  init_state,
+                 task,
                  G=GravConstant,
                  m1=M_e,
                  m2=M_m,
@@ -32,8 +39,18 @@ class Orbit:
         self.mPlanet1 = m1
         self.mPlanet2 = m2
         self.state = np.asarray(init_state, dtype='float')
-        self.rkf54 = RungeKuttaFehlberg54(self.ydot, len(self.state), self.h, self.tol)
-        self.prevPositions = self.prevPositions
+        if task == 3:
+            self.rkf54 = RungeKuttaFehlberg54(self.ydotTask3, len(self.state), self.h, self.tol)
+            self.prevPositions = self.prevPositions
+        elif task == 5:
+            self.rkf54 = RungeKuttaFehlberg54(self.ydotTask5, len(self.state), self.h, self.tol)
+            self.prevPositions = self.prevPositions
+        elif task == 6:
+            self.rkf54 = RungeKuttaFehlberg54(self.ydotTask6, len(self.state), self.h, self.tol)
+            self.prevPositions = [[0], [6371010]]
+        self.check = 0
+
+
 
     def getPos(self):
         return self.prevPositions
@@ -55,18 +72,36 @@ class Orbit:
         vxJ = self.state[2]
         pyJ = self.state[3]
         vyJ = self.state[4]
+        pxR = self.state[5]
+        vxR = self.state[6]
+        pyR = self.state[7]
+        vyR = self.state[8]
+        m_earth = self.mPlanet1
+        G = self.GravConst
+        mR = opg4.estimate_mass(self.state[0])
+        dist = np.sqrt((pxR - pxJ) ** 2 + (pyR - pyJ) ** 2)
+        uTot = -G * m_earth * mR / dist
+        k_earth = m_earth * (vxJ ** 2 + vyJ ** 2) / 2
+        kR = mR * (vxR ** 2 + vyR ** 2) / 2
+        return (k_earth + uTot + kR) / (10 ** 24)
+
+    def energyTask3(self):
+        pxJ = self.state[1]
+        vxJ = self.state[2]
+        pyJ = self.state[3]
+        vyJ = self.state[4]
         pxM = self.state[5]
         vxM = self.state[6]
         pyM = self.state[7]
         vyM = self.state[8]
-        mJorda = self.mPlanet1
+        m_earth = self.mPlanet1
         mManen = self.mPlanet2
         G = self.GravConst
         dist = np.sqrt((pxM - pxJ) ** 2 + (pyM - pyJ) ** 2)
-        uTot = -G * mJorda * mManen / dist
-        kJorda = mJorda * (vxJ ** 2 + vyJ ** 2) / 2
-        kManen = mManen * (vxM **2 + vyM**2)/2
-        return (kJorda + uTot + kManen )/(10**24)
+        uTot = -G * m_earth * mManen / dist
+        k_earth = m_earth * (vxJ ** 2 + vyJ ** 2) / 2
+        kManen = mManen * (vxM ** 2 + vyM ** 2) / 2
+        return (k_earth + uTot + kManen) / (10 ** 24)
 
     def time_elapsed(self):
         return self.state[0]
@@ -75,8 +110,33 @@ class Orbit:
         w0 = self.state
         self.state, E = self.rkf54.safeStep(w0)
 
-    def ydot(self, x):
-        mJorda = self.mPlanet1
+    def ydotTask5(self, x):
+        m_earth = self.mPlanet1
+        pxJ = x[1]
+        vxJ = x[2]
+        pyJ = x[3]
+        vyJ = x[4]
+        pxR = x[5]
+        vxR = x[6]
+        pyR = x[7]
+        vyR = x[8]
+
+        z = np.zeros(9)
+        # dist = np.sqrt((pxR - pxJ) ** 2 + (pyR - pyJ) ** 2)
+        z[0] = 1
+        z[1] = 0
+        z[2] = 0
+        z[3] = 0
+        z[4] = 0
+        z[5] = 0
+        z[6] = 0
+        z[7] = vyR
+        z[8] = (-rocket_gravity((pyR - pyJ), estimate_mass(x[0])) - air_resistance((pyR - pyJ), vyR, x[0]) + get_thrust(
+            x[0])) / estimate_mass(x[0])
+        return z
+
+    def ydotTask3(self, x):
+        m_earth = self.mPlanet1
         mManen = self.mPlanet2
         pxJ = x[1]
         vxJ = x[2]
@@ -95,88 +155,92 @@ class Orbit:
         z[3] = vyJ
         z[4] = (self.GravConst * mManen * (pyM - pyJ)) / (dist ** 3)
         z[5] = vxM
-        z[6] = (self.GravConst * mJorda * (pxJ - pxM)) / (dist ** 3)
+        z[6] = (self.GravConst * m_earth * (pxJ - pxM)) / (dist ** 3)
         z[7] = vyM
-        z[8] = (self.GravConst * mJorda * (pyJ - pyM)) / (dist ** 3)
+        z[8] = (self.GravConst * m_earth * (pyJ - pyM)) / (dist ** 3)
+        return z
+
+    def getValues(self):
+        pxJ = self.state[1]
+        vxJ = self.state[2]
+        pyJ = self.state[3]
+        vyJ = self.state[4]
+        pxR = self.state[5]
+        vxR = self.state[6]
+        pyR = self.state[7]
+        vyR = self.state[8]
+
+        values = np.zeros(5)
+        values[0] = np.sqrt(vxR ** 2 + vyR ** 2)
+        values[1] = dist = np.sqrt((pxR - pxJ) ** 2 + (pyR - pyJ) ** 2)
+        values[2] = vxR
+        values[3] = vyR
+
+        return values
+
+    def ydotTask6(self, x):
+        m_earth = self.mPlanet1
+        pxJ = x[1]
+        vxJ = x[2]
+        pyJ = x[3]
+        vyJ = x[4]
+        pxR = x[5]
+        vxR = x[6]
+        pyR = x[7]
+        vyR = x[8]
+
+        dist = np.sqrt((pxR - pxJ) ** 2 + (pyR - pyJ) ** 2)
+        #dist = 50000 - pxR - pxJ
+
+        angle_V = np.arctan(vyR/ vxR)
+        angle_R = np.arcsin(pyR / dist)
+        if(pxR>0 and pyR > 0):
+            angle_R = np.arcsin(pyR / dist)
+        elif(pxR<0 and pyR<0):
+            angle_R = - np.pi/2 - (np.pi/2 + np.arcsin(pyR/dist))
+        elif(pxR<0 and pyR >0):
+            angle_R = np.pi - np.arcsin(pyR/dist)
+
+        periode = get_stage(x[0])
+        if x[0] < 60:
+            angle_F= np.pi/2
+        else:
+            angle_F = angle_V-(0.034)*periode**2
+
+        grav = rocket_gravity(dist,  estimate_mass(x[0]))
+        fart = np.sqrt(vxR**2 + vyR**2)
+        skyve = get_thrust(x[0])
+        luft = air_resistance(dist, fart, x[0])
+
+        z = np.zeros(9)
+        z[0] = 1
+        z[1] = 0
+        z[2] = 0
+        z[3] = 0
+        z[4] = 0
+        z[5] = vxR
+        ax = (grav*np.cos(angle_R+np.pi) + luft*np.cos(angle_V+np.pi) + skyve*np.cos(angle_F))/ estimate_mass(x[0])
+        z[6] = ax
+        z[7] = vyR
+        ay = (grav*np.sin(angle_R+np.pi) +luft*np.sin(angle_V+np.pi) + skyve*np.sin(angle_F)) / estimate_mass(x[0])
+        z[8] = ay
+
+        if(900 < x[0] < 1050):
+        #if(vyR < 5):
+                print()
+                print("fart x:", vxR)
+                print("fart y:", vyR)
+                print("tid?:", x[0])
+                print("ax:", ax)
+                print("ay:", ay)
+                print("angle_R:", angle_R)
+                print("angle_F:", angle_F)
+                print("angle_V:", angle_V)
+                print("airresistance:", luft)
+                print("thrust::", skyve)
+                print("gravity:", grav)
+
+
         return z
 
 
-# make an Orbit instance
-# init_state: [t0, x0J, vx0J,  y0MJ   vy0J, x0M, vx0M,   y0M,    vy0M],
-orbit = Orbit([0,   0,     0,     0,   0,    0,   -1022, 384000000, 0])
-dt = 1. / 30  # 30 frames per second
-
-# The figure is set
-fig = plot.figure()
-axes = fig.add_subplot(111, aspect='equal', autoscale_on=False,
-                       xlim=(-0.5 * 10 ** 9, 0.5 * 10 ** 9), ylim=(-0.5 * 10 ** 9, 0.5 * 10 ** 9))
-
-trail, = axes.plot([], [], 'r--', lw=0.5)
-lineA, = axes.plot([], [], 'o-b', lw=60, ms=12)  # A blue planet 6*10**6
-lineB, = axes.plot([], [], 'o-r', lw=17, ms=3.4)  # A white planet
-
-# line2, = axes.plot([], [], 'o-y', lw=2)  # A yellow sun
-time_text = axes.text(0.02, 0.95, '', transform=axes.transAxes)
-energy_text = axes.text(0.02, 0.90, '', transform=axes.transAxes)
-
-
-def init():
-    """initialize animation"""
-    lineA.set_data([], [])
-    trail.set_data([], [])
-    lineB.set_data([], [])
-    time_text.set_text('')
-    energy_text.set_text('')
-    return lineA, lineB, time_text, energy_text
-
-
-def animate(i):
-    """perform animation step"""
-    global orbit, dt
-    secondsPerFrame = 3600 * 24 / 36
-    t0 = orbit.state[0]
-    while orbit.state[0] < t0 + secondsPerFrame:
-        orbit.step()
-
-    posJ, posM = orbit.position()
-    x = posM[0]
-    y = posM[1]
-    orbit.addPos(x, y)
-    trail.set_data(orbit.getPos())
-    lineA.set_data(*posJ)
-    lineB.set_data(*posM)
-    t1 = orbit.time_elapsed()
-    antallDager = t1 / (24 * 3600)
-
-    time_text.set_text('time %.3f Days' % antallDager)
-    energy_text.set_text('energy = %.5f YJ' % orbit.energy())
-    return lineA, lineB, time_text, energy_text
-
-
-# choose the interval based on dt and the time to animate one step
-# Take the time for one call of the animate.
-t0 = time.time()
-animate(0)
-t1 = time.time()
-
-delay = 2000 * dt - (t1 - t0)
-
-anim = animation.FuncAnimation(fig,  # figure to plot in
-                               animate,  # function that is called on each frame
-                               frames=7000,  # total number of frames
-                               interval=1.0/30,  # time to wait between each frame.
-                               repeat=False,
-                               blit=True,
-                               init_func=init  # initialization
-                               )
-
-# save the animation as an mp4.  This requires ffmpeg or mencoder to be
-# installed.  The extra_args ensure that the x264 codec is used, so that
-# the video can be embedded in html5.  You may need to adjust this for
-# your system: for more information, see
-# http://matplotlib.sourceforge.net/api/animation_api.html
-anim.save('Oppg3.html', fps=30, extra_args=['-vcodec', 'libx264'])
-
-#
-#
-#plot.show()
