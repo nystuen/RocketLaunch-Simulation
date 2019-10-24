@@ -34,7 +34,6 @@ params = {"ytick.color": "w",
           "axes.edgecolor": "w"}
 plot.rcParams.update(params)
 
-
 def init():
     """initialize animation"""
     lineA.set_data([], [])
