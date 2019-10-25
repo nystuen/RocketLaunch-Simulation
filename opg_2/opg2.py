@@ -38,7 +38,7 @@ def example1(tol, pr):
 
     (y1, y2) = W[1:]
     ye1, ye2 = EF1(tEnd)
-    print("funnet: ", y1, y2)
+    print("Funnet: ", y1, y2)
     print("eksakt: ", ye1, ye2)
     print("Globale feil: ", y1 - ye1, y2 - ye2)
     print("Feil fra RFK45: ", E)

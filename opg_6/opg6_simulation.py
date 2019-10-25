@@ -47,7 +47,7 @@ def init():
 def animate(i):
     """perform animation step"""
     global orbit, dt
-    secondsPerFrame = 10
+    secondsPerFrame = 100
     t0 = orbit.state[0]
     while orbit.state[0] < t0 + secondsPerFrame:
         orbit.step()
@@ -56,7 +56,7 @@ def animate(i):
     y = posR[1]
     height = (np.sqrt(posR[1] ** 2 + posR[0] ** 2) - radius_earth) / 1000
     if height < 0:
-        raise ValueError('Rocket crashed, exiting')
+        raise ValueError('Rocket crashed, exiting. time:',orbit.time_elapsed())
         exit - 1
     orbit.addPos(x, y)
     trail.set_data(orbit.getPos())
@@ -81,7 +81,7 @@ delay = 2000 * dt - (t1 - t0)
 
 anim = animation.FuncAnimation(fig,  # figure to plot in
                                animate,  # function that is called on each frame
-                               frames=900,  # total number of frames
+                               frames=1000,  # total number of frames
                                interval=delay,  # time to wait between each frame.
                                repeat=False,
                                blit=True,
@@ -93,6 +93,7 @@ anim = animation.FuncAnimation(fig,  # figure to plot in
 # the video can be embedded in html5.  You may need to adjust this for
 # your system: for more information, see
 # http://matplotlib.sourceforge.net/api/animation_api.html
-anim.save('Oppgave6.html', fps=3000, extra_args=['-vcodec', 'libx264'])
+print('Total time:', t1, ". Total rounds:", t1/7746)
+anim.save('Oppgave6.html', fps=30, extra_args=['-vcodec', 'libx264'])
 
 # plot.show()

@@ -13,7 +13,6 @@ thrust = [35100000, 5141000, 1000000]
 
 estimated_exhaust_each_stage = []
 
-
 def get_stage(time):
     if time < 0:
         return 0
@@ -107,3 +106,23 @@ for stage in range(len(stage_duration)):
     estimated_exhaust_each_stage.append(estimated_exhaust_velocity)
 
 print('exhaust each stage:', estimated_exhaust_each_stage)
+
+estimated_masses = []
+estimated_thrusts = []
+for tid in range(1400):
+    estimated_masses.append(estimate_mass(tid))
+    estimated_thrusts.append(get_thrust(tid))
+
+plt.plot(estimated_masses)
+plt.ylabel('Mass (kg)')
+plt.xlabel('Time (s)')
+plt.savefig('mass-as-a-function-of-time.png')
+plt.show()
+
+
+plt.plot(estimated_thrusts)
+plt.ylabel('Thrust (N)')
+plt.xlabel('Time (s)')
+plt.savefig('thrust-as-a-function-of-time.png')
+plt.show()
+

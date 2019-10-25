@@ -81,7 +81,7 @@ class Orbit:
         vyR = self.state[8]
         m_earth = self.mPlanet1
         G = self.GravConst
-        mR = opg_4.estimate_mass(self.state[0])
+        mR = estimate_mass(self.state[0])
         dist = np.sqrt((pxR - pxJ) ** 2 + (pyR - pyJ) ** 2)
         uTot = -G * m_earth * mR / dist
         k_earth = m_earth * (vxJ ** 2 + vyJ ** 2) / 2
@@ -191,10 +191,10 @@ class Orbit:
         vyR = x[8]
 
         dist = np.sqrt((pxR - pxJ) ** 2 + (pyR - pyJ) ** 2)
-        # dist = 50000 - pxR - pxJ
 
         angle_V = np.arctan(vyR / vxR)
         angle_R = np.arcsin(pyR / dist)
+
         if (pxR > 0 and pyR > 0):
             angle_R = np.arcsin(pyR / dist)
         elif (pxR < 0 and pyR < 0):
@@ -202,11 +202,12 @@ class Orbit:
         elif (pxR < 0 and pyR > 0):
             angle_R = np.pi - np.arcsin(pyR / dist)
 
-        periode = get_stage(x[0])
+        stage = get_stage(x[0])
+
         if x[0] < 60:
             angle_F = np.pi / 2
         else:
-            angle_F = angle_V - (0.034) * periode ** 2
+            angle_F = angle_V - (0.034) * stage ** 2
 
         gravity = rocket_gravity(dist, estimate_mass(x[0]))
         speed = np.sqrt(vxR ** 2 + vyR ** 2)

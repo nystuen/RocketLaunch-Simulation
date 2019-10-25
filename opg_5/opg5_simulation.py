@@ -24,6 +24,14 @@ height_text = axes.text(0.02, 0.90, '', transform=axes.transAxes)
 speed_text = axes.text(0.02, 0.85, '', transform=axes.transAxes)
 
 
+maxHeight = 0
+currentHeight = 0
+timeAtMaxHeight = 0
+
+maxSpeed = 0
+currentSpeed = 0
+timeAtMaxSpeed = 0
+
 def init():
     lineA.set_data([], [])
     trail.set_data([], [])
@@ -33,8 +41,10 @@ def init():
     return lineA, lineB, time_text, speed_text
 
 
+
+
 def animate(i):
-    global orbit, dt
+    global orbit, dt, maxHeight, maxSpeed, timeAtMaxHeight, timeAtMaxSpeed
     secondsPerFrame = 0.3
     t0 = orbit.state[0]
     while orbit.state[0] < t0 + secondsPerFrame:
@@ -48,9 +58,22 @@ def animate(i):
     lineB.set_data(*posR)
     t1 = orbit.time_elapsed()
 
-    speed_text.set_text('Speed: %.3f' % orbit.getValues()[0])
+    currentSpeed =  orbit.getValues()[0]
+    currentHeight = height
+
+
+    if(currentHeight > maxHeight):
+        maxHeight = currentHeight
+        timeAtMaxHeight = t1
+    if(currentSpeed > maxSpeed):
+        maxSpeed = currentSpeed
+        timeAtMaxSpeed = t1
+
+
+
+    speed_text.set_text('Speed: %.3f' % currentSpeed)
     time_text.set_text('Time %.3f S' % t1)
-    height_text.set_text('Height = %.5f km' % height)
+    height_text.set_text('Height = %.5f km' % currentHeight)
 
     return lineA, lineB, time_text, speed_text
 
@@ -70,5 +93,10 @@ anim = animation.FuncAnimation(fig,  # figure to plot in
                                blit=True,
                                init_func=init  # initialization
                                )
+
+
+print('Max height:', maxHeight,'. Time:', timeAtMaxHeight)
+print('Max speed:', maxSpeed,'. Time:', timeAtMaxSpeed)
+
 
 anim.save('Oppgave5.html', fps=30, extra_args=['-vcodec', 'libx264'])
